@@ -1,0 +1,1 @@
+import{d as t,c as n,b as o,n as a}from"./index-C-QxCMJB.js";const c=t({__name:"SearchView",setup(s){return(r,e)=>(a(),n("div",null,[...e[0]||(e[0]=[o("h1",{class:"text-2xl font-bold mb-4"},"Поиск",-1)])]))}});export{c as default};

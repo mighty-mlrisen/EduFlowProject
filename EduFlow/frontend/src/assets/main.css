@@ -1,0 +1,166 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Dark mode — class-based overrides (.dark on <html>)
+   ═══════════════════════════════════════════════════════ */
+
+.dark {
+  color-scheme: dark;
+}
+
+/* Body */
+.dark body {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+/* ── Backgrounds ───────────────────────────────────── */
+.dark .bg-white        { background-color: #1e293b !important; }
+.dark .bg-gray-50      { background-color: #0f172a !important; }
+.dark .bg-gray-100     { background-color: #1e293b !important; }
+.dark .bg-gray-200     { background-color: #334155 !important; }
+.dark .bg-blue-50      { background-color: rgba(30, 58, 138, 0.25) !important; }
+.dark .bg-blue-100     { background-color: rgba(30, 58, 138, 0.35) !important; }
+.dark .bg-green-50     { background-color: rgba(20, 83, 45, 0.3)  !important; }
+.dark .bg-amber-50     { background-color: rgba(120, 53, 15, 0.25) !important; }
+.dark .bg-red-50       { background-color: rgba(127, 29, 29, 0.25) !important; }
+.dark .bg-pink-50      { background-color: rgba(131, 24, 67, 0.2)  !important; }
+.dark .bg-indigo-50    { background-color: rgba(49, 46, 129, 0.25) !important; }
+.dark .bg-indigo-100   { background-color: rgba(49, 46, 129, 0.35) !important; }
+.dark .bg-yellow-100   { background-color: rgba(113, 63, 18, 0.3)  !important; }
+.dark .bg-orange-100   { background-color: rgba(124, 45, 18, 0.3)  !important; }
+
+/* ── Text ──────────────────────────────────────────── */
+.dark .text-gray-900   { color: #f1f5f9 !important; }
+.dark .text-gray-800   { color: #e2e8f0 !important; }
+.dark .text-gray-700   { color: #cbd5e1 !important; }
+.dark .text-gray-600   { color: #94a3b8 !important; }
+.dark .text-gray-500   { color: #64748b !important; }
+.dark .text-gray-400   { color: #475569 !important; }
+.dark .text-blue-700   { color: #93c5fd !important; }
+.dark .text-blue-600   { color: #60a5fa !important; }
+.dark .text-indigo-700 { color: #a5b4fc !important; }
+.dark .text-green-700  { color: #86efac !important; }
+.dark .text-yellow-700 { color: #fde047 !important; }
+.dark .text-orange-600 { color: #fb923c !important; }
+
+/* ── Borders ───────────────────────────────────────── */
+.dark .border-gray-50   { border-color: #1e293b !important; }
+.dark .border-gray-100  { border-color: #334155 !important; }
+.dark .border-gray-200  { border-color: #334155 !important; }
+.dark .border-gray-300  { border-color: #475569 !important; }
+.dark .border-b         { border-bottom-color: #334155; }
+.dark .border-t         { border-top-color:    #334155; }
+
+/* ── Inputs & textareas ───────────────────────────── */
+.dark input:not([type="range"]),
+.dark textarea,
+.dark select {
+  background-color: #334155 !important;
+  color: #f1f5f9 !important;
+  border-color: #475569 !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* ── Shadows ───────────────────────────────────────── */
+.dark .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.5) !important;
+}
+.dark .shadow-xl {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6),
+              0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ── Hover states ──────────────────────────────────── */
+.dark .hover\:bg-gray-50:hover  { background-color: #1e293b !important; }
+.dark .hover\:bg-gray-100:hover { background-color: #334155 !important; }
+.dark .hover\:bg-blue-50:hover  { background-color: rgba(30, 58, 138, 0.3) !important; }
+
+/* ── Prose / TipTap editor ─────────────────────────── */
+.dark .prose {
+  color: #e2e8f0;
+}
+.dark .prose h1,
+.dark .prose h2,
+.dark .prose h3,
+.dark .prose h4 {
+  color: #f1f5f9;
+}
+.dark .prose a    { color: #93c5fd; }
+.dark .prose strong { color: #f1f5f9; }
+.dark .prose code {
+  background-color: #334155;
+  color: #e2e8f0;
+}
+.dark .prose pre {
+  background-color: #1e293b;
+}
+.dark .prose blockquote {
+  border-left-color: #475569;
+  color: #94a3b8;
+}
+
+/* ── ProseMirror editor area ───────────────────────── */
+.dark .ProseMirror {
+  color: #e2e8f0 !important;
+  background-color: #1e293b;
+  caret-color: #93c5fd;
+}
+
+/* Headings */
+.dark .ProseMirror h1,
+.dark .ProseMirror h2,
+.dark .ProseMirror h3,
+.dark .ProseMirror h4,
+.dark .ProseMirror h5,
+.dark .ProseMirror h6 { color: #f1f5f9 !important; }
+
+/* Paragraphs & lists */
+.dark .ProseMirror p   { color: #e2e8f0 !important; }
+.dark .ProseMirror li  { color: #e2e8f0 !important; }
+
+/* Blockquote */
+.dark .ProseMirror blockquote {
+  border-left-color: #475569 !important;
+  color: #94a3b8 !important;
+}
+
+/* Inline code */
+.dark .ProseMirror code {
+  background-color: #334155 !important;
+  color: #93c5fd !important;
+}
+
+/* Table */
+.dark .ProseMirror table {
+  border-color: #475569;
+}
+.dark .ProseMirror th {
+  background-color: #334155 !important;
+  color: #f1f5f9 !important;
+  border-color: #475569 !important;
+}
+.dark .ProseMirror td {
+  color: #e2e8f0 !important;
+  border-color: #475569 !important;
+}
+.dark .ProseMirror .selectedCell {
+  background-color: rgba(96, 165, 250, 0.15) !important;
+}
+
+/* Placeholder */
+.dark .ProseMirror p.is-editor-empty::before,
+.dark .ProseMirror p.is-editor-empty:first-child::before {
+  color: #475569 !important;
+}
