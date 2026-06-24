@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { getSavedArticles } from '@/api/user.api'
 import type { ArticleResponse } from '@/types/article.types'
 import ArticleCard from '@/components/article/ArticleCard.vue'
 import SortBar from '@/components/article/SortBar.vue'
 import { useArticleSort } from '@/composables/useArticleSort'
+import { onBeforeRouteLeave } from 'vue-router'
 
 const PER_PAGE = 10
 
@@ -24,6 +25,11 @@ const paginatedArticles = computed(() => {
 watch(sortKey, () => { currentPage.value = 1 })
 watch(currentPage, () => { window.scrollTo({ top: 0, behavior: 'smooth' }) })
 
+onBeforeRouteLeave(() => {
+  sessionStorage.setItem('saved:scroll', String(window.scrollY))
+  sessionStorage.setItem('saved:page', String(currentPage.value))
+})
+
 function smartPages(current: number, total: number): (number | '…')[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
   const pages: (number | '…')[] = [1]
@@ -35,6 +41,14 @@ function smartPages(current: number, total: number): (number | '…')[] {
 }
 
 onMounted(async () => {
+  const savedPage = sessionStorage.getItem('saved:page')
+  if (savedPage) {
+    currentPage.value = parseInt(savedPage)
+    sessionStorage.removeItem('saved:page')
+  }
+
+  const savedScroll = sessionStorage.getItem('saved:scroll')
+
   loading.value = true
   try {
     articles.value = await getSavedArticles()
@@ -42,6 +56,12 @@ onMounted(async () => {
     error.value = 'Не удалось загрузить избранное'
   } finally {
     loading.value = false
+  }
+
+  if (savedScroll) {
+    sessionStorage.removeItem('saved:scroll')
+    await nextTick()
+    window.scrollTo({ top: parseInt(savedScroll), behavior: 'instant' })
   }
 })
 

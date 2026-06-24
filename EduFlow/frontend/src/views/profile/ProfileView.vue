@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { getProfileById, getUserSubscriptions, getUserSubscribers } from '@/api/user.api'
 import { getArticlesByUserId } from '@/api/article.api'
+import { onBeforeRouteLeave } from 'vue-router'
 import type { ProfileResponse } from '@/types/user.types'
 import type { ArticleResponse } from '@/types/article.types'
 import { useAuthStore } from '@/stores/auth.store'
@@ -84,7 +85,13 @@ function goToPage(p: number) {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+onBeforeRouteLeave(() => {
+  sessionStorage.setItem(`profile-${props.userId}:scroll`, String(window.scrollY))
+})
+
 onMounted(async () => {
+  const savedScroll = sessionStorage.getItem(`profile-${props.userId}:scroll`)
+
   try {
     const [p, subs, sbrs] = await Promise.all([
       getProfileById(props.userId),
@@ -94,11 +101,17 @@ onMounted(async () => {
     profile.value = p
     subscriptions.value = subs
     subscribers.value = sbrs
-    loadArticles()
+    await loadArticles()
   } catch {
     error.value = 'Пользователь не найден'
   } finally {
     loading.value = false
+  }
+
+  if (savedScroll) {
+    sessionStorage.removeItem(`profile-${props.userId}:scroll`)
+    await nextTick()
+    window.scrollTo({ top: parseInt(savedScroll), behavior: 'instant' })
   }
 })
 

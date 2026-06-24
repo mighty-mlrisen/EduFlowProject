@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave } from 'vue-router'
 import { getArticleById, getMyDrafts, getMyArticles } from '@/api/article.api'
 import type { ArticleResponse } from '@/types/article.types'
 import ArticleEditor from '@/components/editor/ArticleEditor.vue'
@@ -65,6 +66,10 @@ watch(activeTab, () => { draftsPage.value = 1; articlesPage.value = 1 })
 watch(draftsPage, () => { window.scrollTo({ top: 0, behavior: 'smooth' }) })
 watch(articlesPage, () => { window.scrollTo({ top: 0, behavior: 'smooth' }) })
 
+onBeforeRouteLeave(() => {
+  sessionStorage.setItem('publish:scroll', String(window.scrollY))
+})
+
 // Load article when editing
 watch(editId, async (id) => {
   if (id) {
@@ -98,6 +103,12 @@ async function loadDrafts() {
   } finally {
     loadingList.value = false
   }
+  const saved = sessionStorage.getItem('publish:scroll')
+  if (saved) {
+    sessionStorage.removeItem('publish:scroll')
+    await nextTick()
+    window.scrollTo({ top: parseInt(saved), behavior: 'instant' })
+  }
 }
 
 async function loadPublished() {
@@ -110,6 +121,12 @@ async function loadPublished() {
     listError.value = 'Не удалось загрузить статьи'
   } finally {
     loadingList.value = false
+  }
+  const saved = sessionStorage.getItem('publish:scroll')
+  if (saved) {
+    sessionStorage.removeItem('publish:scroll')
+    await nextTick()
+    window.scrollTo({ top: parseInt(saved), behavior: 'instant' })
   }
 }
 

@@ -47,6 +47,9 @@ public class ArticleService {
     @Autowired
     UserService userService;
 
+    @Autowired
+    SummarizationClient summarizationClient;
+
     private ArticleResponse buildResponse(ArticleEntity article, UserEntity user) {
         ArticleResponse r = new ArticleResponse(article, user);
         r.setCommentsCount((int) commentRepository.countByArticle(article));
@@ -193,6 +196,20 @@ public class ArticleService {
         return articleResponse.getLikes();
     }
 
+    @Transactional(readOnly = true)
+    public String getArticleSummary(Long articleId, UserDetailsImpl user) {
+        articleRepository.findById(articleId)
+                .orElseThrow(() -> new MyEntityNotFoundException(articleId));
+        return summarizationClient.getSummary(articleId);
+    }
+
+    @Transactional(readOnly = true)
+    public String getArticleText(Long articleId) {
+        ArticleEntity article = articleRepository.findById(articleId)
+                .orElseThrow(() -> new MyEntityNotFoundException(articleId));
+        return article.getText() != null ? article.getText() : "";
+    }
+
     @Transactional
     public void deleteArticle(Long articleId, UserDetailsImpl user) {
         ArticleEntity article = articleRepository.findById(articleId)
@@ -202,6 +219,7 @@ public class ArticleService {
             throw new BusinessException("Access denied: not the author");
         }
         articleRepository.deleteById(articleId);
+        summarizationClient.invalidateCache(articleId);
     }
 
     @Transactional
@@ -216,6 +234,7 @@ public class ArticleService {
         article.setText(articleRequest.getText());
         article.setImage(articleRequest.getImage());
         articleRepository.save(article);
+        summarizationClient.invalidateCache(articleId);
         return buildResponse(article, userService.getUser(user));
     }
 }

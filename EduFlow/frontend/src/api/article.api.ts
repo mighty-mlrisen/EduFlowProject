@@ -64,6 +64,12 @@ export function getReactionCount(articleId: number): Promise<number> {
   return api.get<number>(`/user/article/reaction/count/${articleId}`).then((r) => r.data)
 }
 
+// --- Саммари ---
+
+export function getArticleSummary(articleId: number): Promise<string> {
+  return api.get<{ summary: string }>(`/user/article/${articleId}/summary`).then((r) => r.data.summary)
+}
+
 // --- Комментарии ---
 
 export function createComment(articleId: number, payload: CommentRequest): Promise<CommentResponse> {

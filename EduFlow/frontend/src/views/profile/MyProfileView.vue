@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useUserStore } from '@/stores/user.store'
 import { getMySubscriptions, getMySubscribers } from '@/api/user.api'
 import { getMyArticles } from '@/api/article.api'
+import { onBeforeRouteLeave } from 'vue-router'
 import type { ProfileResponse } from '@/types/user.types'
 import type { ArticleResponse } from '@/types/article.types'
 import FeedArticleCard from '@/components/article/FeedArticleCard.vue'
@@ -102,7 +103,13 @@ function goToPage(p: number) {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+onBeforeRouteLeave(() => {
+  sessionStorage.setItem('my-profile:scroll', String(window.scrollY))
+})
+
 onMounted(async () => {
+  const savedScroll = sessionStorage.getItem('my-profile:scroll')
+
   tabDataLoading.value = true
   try {
     const [arts, subs, sbrs] = await Promise.all([
@@ -117,6 +124,12 @@ onMounted(async () => {
   finally { tabDataLoading.value = false }
 
   userStore.fetchMyProfile()
+
+  if (savedScroll) {
+    sessionStorage.removeItem('my-profile:scroll')
+    await nextTick()
+    window.scrollTo({ top: parseInt(savedScroll), behavior: 'instant' })
+  }
 })
 
 const profile = computed(() => userStore.myProfile)

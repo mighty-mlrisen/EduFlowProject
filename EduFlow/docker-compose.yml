@@ -17,6 +17,35 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: eduflow-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lfu
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  summarization:
+    build:
+      context: ./summarization-service
+      dockerfile: Dockerfile
+    container_name: eduflow-summarization
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      REDIS_URL: redis://redis:6379
+      ARTICLE_SERVICE_URL: http://api:8080
+      MODEL_SERVICE_URL: http://host.docker.internal:8001
+    depends_on:
+      redis:
+        condition: service_healthy
+
   api:
     build:
       context: ./EduFlowAPI-service
@@ -32,6 +61,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_SESSION_TIME: ${JWT_SESSION_TIME}
       JWT_REFRESH_SESSION_TIME: ${JWT_REFRESH_SESSION_TIME}
+      SUMMARIZATION_SERVICE_URL: http://summarization:8000
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
-import { getArticleById } from '@/api/article.api'
+import katex from 'katex'
+import { getArticleById, getArticleSummary } from '@/api/article.api'
 import type { ArticleResponse } from '@/types/article.types'
 import SaveButton from '@/components/article/SaveButton.vue'
 import LikeButton from '@/components/article/LikeButton.vue'
@@ -14,6 +15,11 @@ const props = defineProps<{ articleId: number }>()
 const article = ref<ArticleResponse | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
+
+const summaryOpen = ref(false)
+const summaryText = ref<string | null>(null)
+const summaryLoading = ref(false)
+const summaryError = ref<string | null>(null)
 
 const renderer = new marked.Renderer()
 const _link = renderer.link.bind(renderer)
@@ -35,16 +41,59 @@ onMounted(async () => {
   }
 })
 
+const contentRef = ref<HTMLElement | null>(null)
+
+function preprocessMath(text: string): string {
+  // Block math ($$...$$) first to avoid conflicts with inline
+  text = text.replace(/\$\$([\s\S]+?)\$\$/g, (_, formula) => {
+    try {
+      return `<div class="math-block">${katex.renderToString(formula.trim(), { throwOnError: false, displayMode: true, output: 'html' })}</div>`
+    } catch {
+      return `<code>$$${formula}$$</code>`
+    }
+  })
+  // Inline math ($...$)
+  text = text.replace(/\$([^$\n]+?)\$/g, (_, formula) => {
+    try {
+      return `<span class="math-inline">${katex.renderToString(formula.trim(), { throwOnError: false, displayMode: false, output: 'html' })}</span>`
+    } catch {
+      return `<code>$${formula}$</code>`
+    }
+  })
+  return text
+}
+
 const renderedContent = computed(() => {
   if (!article.value?.text) return ''
-  const html = marked.parse(article.value.text) as string
+  const processed = preprocessMath(article.value.text)
+  const html = marked.parse(processed) as string
   return DOMPurify.sanitize(html, {
     ADD_TAGS: ['img', 'span'],
-    ADD_ATTR: ['target', 'rel', 'src', 'alt', 'class', 'style', 'colspan', 'rowspan']
+    ADD_ATTR: ['target', 'rel', 'src', 'alt', 'class', 'style', 'colspan', 'rowspan',
+               'aria-hidden', 'data-type', 'data-formula'],
   })
 })
 
-// Own article — hide subscribe button
+// Fallback: render data-type math nodes from older articles saved before the $...$ serializer
+function applyFallbackKatex() {
+  if (!contentRef.value) return
+  contentRef.value.querySelectorAll<HTMLElement>('[data-type="math-inline"]').forEach(el => {
+    const formula = el.getAttribute('data-formula') || ''
+    el.innerHTML = ''
+    try { katex.render(formula, el, { throwOnError: false, displayMode: false, output: 'html' }) } catch {}
+  })
+  contentRef.value.querySelectorAll<HTMLElement>('[data-type="math-block"]').forEach(el => {
+    const formula = el.getAttribute('data-formula') || ''
+    el.innerHTML = ''
+    try { katex.render(formula, el, { throwOnError: false, displayMode: true, output: 'html' }) } catch {}
+  })
+}
+
+watch(renderedContent, async () => {
+  await nextTick()
+  applyFallbackKatex()
+})
+
 const isOwnArticle = computed(() =>
   article.value ? article.value.currentUserId === article.value.users?.userId : false
 )
@@ -57,6 +106,22 @@ function formatDate(dateStr: string) {
 
 function scrollToComments() {
   document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' })
+}
+
+async function toggleSummary() {
+  summaryOpen.value = !summaryOpen.value
+
+  if (summaryOpen.value && summaryText.value === null && !summaryLoading.value) {
+    summaryLoading.value = true
+    summaryError.value = null
+    try {
+      summaryText.value = await getArticleSummary(props.articleId)
+    } catch {
+      summaryError.value = 'Не удалось получить краткое содержание'
+    } finally {
+      summaryLoading.value = false
+    }
+  }
 }
 </script>
 
@@ -85,7 +150,6 @@ function scrollToComments() {
           {{ article.title }}
         </h1>
         <div class="flex items-center gap-1 flex-shrink-0 mt-2">
-          <!-- Scroll to comments -->
           <button
             @click="scrollToComments"
             class="flex items-center justify-center w-12 h-12 rounded-full text-gray-400 hover:text-blue-500 hover:bg-gray-100 transition-colors"
@@ -138,13 +202,54 @@ function scrollToComments() {
         />
       </div>
 
+      <!-- Summary toggle -->
+      <div class="mb-8">
+        <button
+          @click="toggleSummary"
+          class="w-full flex items-center justify-between px-5 py-3.5 rounded-xl border transition-all"
+          :class="summaryOpen
+            ? 'bg-violet-50 border-violet-200'
+            : 'bg-gray-50 border-gray-200 hover:bg-violet-50 hover:border-violet-200'"
+        >
+          <div class="flex items-center gap-2.5">
+            <svg class="w-4 h-4 text-violet-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74L12 2z"/>
+              <path d="M5 3l.9 2.7L8 6.5l-2.1.8L5 10l-.9-2.7L2 6.5l2.1-.8L5 3z" opacity=".6"/>
+            </svg>
+            <span class="text-sm font-medium text-violet-700">Краткое содержание</span>
+          </div>
+          <svg
+            class="w-4 h-4 text-violet-400 transition-transform duration-300"
+            :class="summaryOpen ? 'rotate-180' : ''"
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </button>
+
+        <Transition name="summary-slide">
+          <div v-if="summaryOpen" class="mt-1 px-5 py-4 rounded-xl bg-violet-50/60 border border-violet-100">
+
+              <div v-if="summaryLoading" class="flex items-center gap-3 text-violet-500 text-sm py-1">
+                <div class="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                Генерируем краткое содержание...
+              </div>
+
+              <p v-else-if="summaryError" class="text-sm text-red-500">{{ summaryError }}</p>
+
+              <p v-else class="text-sm text-gray-700 leading-relaxed text-justify">{{ summaryText }}</p>
+
+          </div>
+        </Transition>
+      </div>
+
       <!-- Description -->
       <p v-if="article.description" class="text-lg text-gray-500 mb-8 leading-relaxed">
         {{ article.description }}
       </p>
 
       <!-- Content -->
-      <div class="article-content prose prose-lg prose-gray max-w-none" v-html="renderedContent" />
+      <div ref="contentRef" class="article-content prose prose-lg prose-gray max-w-none" v-html="renderedContent" />
 
       <!-- Likes -->
       <div class="mt-10 pt-6 border-t border-gray-100">
@@ -164,6 +269,18 @@ function scrollToComments() {
 </template>
 
 <style scoped>
+.summary-slide-enter-active,
+.summary-slide-leave-active {
+  transition: max-height 0.35s ease, opacity 0.3s ease;
+  max-height: 600px;
+  overflow: hidden;
+}
+.summary-slide-enter-from,
+.summary-slide-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+
 :deep(.article-content pre) {
   background: #282c34 !important;
   color: #abb2bf !important;
@@ -207,5 +324,17 @@ function scrollToComments() {
 }
 :deep(.article-content tr:nth-child(even) td) {
   background: #fafafa;
+}
+:deep(.article-content .math-block) {
+  overflow-x: auto;
+  text-align: center;
+  margin: 1.5rem 0;
+  padding: 0.5rem 0;
+}
+:deep(.article-content .math-inline) {
+  display: inline;
+}
+:deep(.article-content .katex) {
+  font-size: 1.1em;
 }
 </style>

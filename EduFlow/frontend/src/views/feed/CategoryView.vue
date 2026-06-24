@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { getArticlesByCategory, getCategories } from '@/api/article.api'
 import type { ArticleResponse, CategoryEntity } from '@/types/article.types'
 import FeedArticleCard from '@/components/article/FeedArticleCard.vue'
 import SortBar from '@/components/article/SortBar.vue'
 import { useArticleSort } from '@/composables/useArticleSort'
+import { onBeforeRouteLeave } from 'vue-router'
 
 const props = defineProps<{ categoryId: number }>()
 
@@ -41,7 +42,28 @@ async function load(id: number) {
   }
 }
 
-onMounted(() => load(props.categoryId))
+onBeforeRouteLeave(() => {
+  sessionStorage.setItem(`category-${props.categoryId}:scroll`, String(window.scrollY))
+  sessionStorage.setItem(`category-${props.categoryId}:page`, String(currentPage.value))
+})
+
+onMounted(async () => {
+  const savedPage = sessionStorage.getItem(`category-${props.categoryId}:page`)
+  const savedScroll = sessionStorage.getItem(`category-${props.categoryId}:scroll`)
+
+  await load(props.categoryId)
+
+  if (savedPage) {
+    currentPage.value = parseInt(savedPage)
+    sessionStorage.removeItem(`category-${props.categoryId}:page`)
+  }
+
+  if (savedScroll) {
+    sessionStorage.removeItem(`category-${props.categoryId}:scroll`)
+    await nextTick()
+    window.scrollTo({ top: parseInt(savedScroll), behavior: 'instant' })
+  }
+})
 watch(() => props.categoryId, (id) => load(id))
 
 const totalPages = computed(() => Math.max(1, Math.ceil(sorted.value.length / ITEMS_PER_PAGE)))

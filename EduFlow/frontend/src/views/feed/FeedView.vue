@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
 import { getAllArticles } from '@/api/article.api'
 import type { ArticleResponse } from '@/types/article.types'
 import FeedArticleCard from '@/components/article/FeedArticleCard.vue'
 import SortBar from '@/components/article/SortBar.vue'
 import { useArticleSort } from '@/composables/useArticleSort'
+import { onBeforeRouteLeave } from 'vue-router'
 
 const auth = useAuthStore()
 
@@ -20,8 +21,22 @@ const { sortKey, sorted } = useArticleSort(articles)
 
 watch(sortKey, () => { currentPage.value = 1 })
 
+onBeforeRouteLeave(() => {
+  sessionStorage.setItem('feed:scroll', String(window.scrollY))
+  sessionStorage.setItem('feed:page', String(currentPage.value))
+})
+
 onMounted(async () => {
+  const savedPage = sessionStorage.getItem('feed:page')
+  if (savedPage) {
+    currentPage.value = parseInt(savedPage)
+    sessionStorage.removeItem('feed:page')
+  }
+
   if (!auth.isAuthenticated) return
+
+  const savedScroll = sessionStorage.getItem('feed:scroll')
+
   loading.value = true
   try {
     const all = await getAllArticles()
@@ -30,6 +45,12 @@ onMounted(async () => {
     error.value = 'Не удалось загрузить статьи'
   } finally {
     loading.value = false
+  }
+
+  if (savedScroll) {
+    sessionStorage.removeItem('feed:scroll')
+    await nextTick()
+    window.scrollTo({ top: parseInt(savedScroll), behavior: 'instant' })
   }
 })
 

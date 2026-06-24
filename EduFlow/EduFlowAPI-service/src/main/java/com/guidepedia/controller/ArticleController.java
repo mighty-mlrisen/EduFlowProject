@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @SecurityRequirement(name = "Authorization")
@@ -167,6 +168,21 @@ public class ArticleController {
     public ResponseEntity<Void> deleteArticle(@PathVariable Long articleId, @AuthenticationPrincipal UserDetailsImpl user) {
         articleService.deleteArticle(articleId, user);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Get article summary",
+            description = "Generate AI summary for article using summarization service")
+    @GetMapping(value = "/user/article/{articleId}/summary")
+    @ResponseBody
+    public Map<String, String> getArticleSummary(@PathVariable Long articleId, @AuthenticationPrincipal UserDetailsImpl user) {
+        String summary = articleService.getArticleSummary(articleId, user);
+        return Map.of("summary", summary);
+    }
+
+    @GetMapping(value = "/internal/article/{articleId}/text")
+    @ResponseBody
+    public Map<String, String> getArticleText(@PathVariable Long articleId) {
+        return Map.of("text", articleService.getArticleText(articleId));
     }
 
     @Operation(summary = "Get article by word",

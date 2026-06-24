@@ -3,6 +3,23 @@ import { useAuthStore } from '@/stores/auth.store'
 
 const router = createRouter({
   history: createWebHistory(),
+  scrollBehavior(to) {
+    const name = String(to.name)
+    const keyMap: Record<string, string> = {
+      'feed': 'feed:scroll',
+      'subscription-feed': 'subfeed:scroll',
+      'publish': 'publish:scroll',
+      'saved': 'saved:scroll',
+      'my-profile': 'my-profile:scroll',
+    }
+    const key = name === 'category'
+      ? `category-${to.params.id}:scroll`
+      : name === 'profile'
+      ? `profile-${to.params.id}:scroll`
+      : keyMap[name]
+    if (key && sessionStorage.getItem(key)) return false
+    return { top: 0 }
+  },
   routes: [
     // --- Публичные ---
     {

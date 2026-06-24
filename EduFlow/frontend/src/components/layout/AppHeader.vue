@@ -105,6 +105,27 @@ function logout() {
   auth.logout()
   router.push({ name: 'login' })
 }
+
+function goHome() {
+  sessionStorage.removeItem('feed:scroll')
+  sessionStorage.removeItem('feed:page')
+}
+
+function clearScrollFor(routeName: string) {
+  const keyMap: Record<string, string[]> = {
+    'subscription-feed': ['subfeed:scroll', 'subfeed:page'],
+    'publish': ['publish:scroll'],
+    'saved': ['saved:scroll', 'saved:page'],
+    'my-profile': ['my-profile:scroll'],
+  }
+  ;(keyMap[routeName] ?? []).forEach(k => sessionStorage.removeItem(k))
+}
+
+function navToCategory(id: number) {
+  sessionStorage.removeItem(`category-${id}:scroll`)
+  sessionStorage.removeItem(`category-${id}:page`)
+  closeCatMenu()
+}
 </script>
 
 <template>
@@ -115,6 +136,7 @@ function logout() {
       <RouterLink
         to="/"
         class="text-2xl font-bold text-blue-600 hover:text-blue-700 transition-colors tracking-tight flex-shrink-0"
+        @click="goHome"
       >
         EduFlow
       </RouterLink>
@@ -155,7 +177,7 @@ function logout() {
               <div
                 v-if="catOpen"
                 class="absolute left-0 top-full mt-2 bg-white rounded-xl border border-gray-100 shadow-xl py-3 px-3 z-40 origin-top-left"
-                style="width: 420px"
+                style="width: 580px"
               >
                 <div v-if="!catLoaded" class="flex items-center gap-2 px-2 py-2 text-sm text-gray-400">
                   <div class="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
@@ -168,9 +190,9 @@ function logout() {
                       v-for="cat in categories"
                       :key="cat.id"
                       :to="`/category/${cat.id}`"
-                      class="px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors truncate"
+                      class="px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors break-words leading-snug"
                       :class="Number($route.params.id) === cat.id ? 'bg-blue-50 text-blue-600 font-medium' : ''"
-                      @click="closeCatMenu"
+                      @click="navToCategory(cat.id)"
                     >
                       {{ cat.name }}
                     </RouterLink>
@@ -187,6 +209,7 @@ function logout() {
             :class="$route.name === 'subscription-feed'
               ? 'bg-blue-50 text-blue-600'
               : 'text-gray-600 hover:text-blue-600 hover:bg-gray-100'"
+            @click="clearScrollFor('subscription-feed')"
           >
             Моя лента
           </RouterLink>
@@ -198,6 +221,7 @@ function logout() {
             :class="$route.name === 'publish'
               ? 'bg-blue-50 text-blue-600'
               : 'text-gray-600 hover:text-blue-600 hover:bg-gray-100'"
+            @click="clearScrollFor('publish')"
           >
             Публикации
           </RouterLink>
@@ -209,6 +233,7 @@ function logout() {
             :class="$route.name === 'saved'
               ? 'bg-blue-50 text-blue-600'
               : 'text-gray-600 hover:text-blue-600 hover:bg-gray-100'"
+            @click="clearScrollFor('saved')"
           >
             Избранное
           </RouterLink>
@@ -260,8 +285,8 @@ function logout() {
           >
             <div
               v-if="searchOpen"
-              class="absolute left-0 top-full mt-2 bg-white rounded-xl border border-gray-100 shadow-xl z-40 overflow-hidden"
-              style="min-width: 540px"
+              class="absolute right-0 top-full mt-2 bg-white rounded-xl border border-gray-100 shadow-xl z-40 overflow-hidden"
+              style="width: 640px"
             >
               <!-- Loading -->
               <div v-if="searchLoading" class="flex items-center gap-2 px-5 py-4 text-base text-gray-400">
@@ -360,6 +385,7 @@ function logout() {
           <RouterLink
             to="/profile"
             class="flex items-center gap-2 px-3 py-2 text-base font-medium text-gray-700 hover:text-blue-600 rounded-lg hover:bg-gray-100 transition-colors"
+            @click="clearScrollFor('my-profile')"
           >
             <span class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-bold uppercase">
               {{ auth.user?.username?.charAt(0) ?? auth.user?.login?.charAt(0) ?? '?' }}

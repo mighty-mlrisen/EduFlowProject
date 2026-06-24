@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { getSubscriptionFeed } from '@/api/article.api'
 import type { ArticleResponse } from '@/types/article.types'
 import FeedArticleCard from '@/components/article/FeedArticleCard.vue'
 import SortBar from '@/components/article/SortBar.vue'
 import { useArticleSort } from '@/composables/useArticleSort'
+import { onBeforeRouteLeave } from 'vue-router'
 
 const articles = ref<ArticleResponse[]>([])
 const loading = ref(false)
@@ -17,7 +18,20 @@ const { sortKey, sorted } = useArticleSort(articles)
 
 watch(sortKey, () => { currentPage.value = 1 })
 
+onBeforeRouteLeave(() => {
+  sessionStorage.setItem('subfeed:scroll', String(window.scrollY))
+  sessionStorage.setItem('subfeed:page', String(currentPage.value))
+})
+
 onMounted(async () => {
+  const savedPage = sessionStorage.getItem('subfeed:page')
+  if (savedPage) {
+    currentPage.value = parseInt(savedPage)
+    sessionStorage.removeItem('subfeed:page')
+  }
+
+  const savedScroll = sessionStorage.getItem('subfeed:scroll')
+
   loading.value = true
   try {
     const all = await getSubscriptionFeed()
@@ -26,6 +40,12 @@ onMounted(async () => {
     error.value = 'Не удалось загрузить ленту'
   } finally {
     loading.value = false
+  }
+
+  if (savedScroll) {
+    sessionStorage.removeItem('subfeed:scroll')
+    await nextTick()
+    window.scrollTo({ top: parseInt(savedScroll), behavior: 'instant' })
   }
 })
 

@@ -4,6 +4,8 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import jakarta.persistence.EntityNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
@@ -24,6 +26,7 @@ import java.security.SignatureException;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @ControllerAdvice
 public class ExceptionMapper extends ResponseEntityExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(ExceptionMapper.class);
     @ExceptionHandler(value = TokenRefreshException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ResponseEntity<ErrorMessage> handleTokenRefreshException(TokenRefreshException ex, WebRequest request) {
@@ -87,6 +90,7 @@ public class ExceptionMapper extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     protected ResponseEntity<ErrorMessage> handleAllExceptions(Exception ex, WebRequest request) {
+        log.error("Unhandled exception on {}: {}", request.getDescription(false), ex.getMessage(), ex);
         ErrorMessage response = new ErrorMessage(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal Server Error", ex.getMessage());
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
